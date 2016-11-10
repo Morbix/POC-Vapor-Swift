@@ -1,12 +1,38 @@
 import Vapor
 import Ji
 import Foundation
+import HTTP
+import Fluent
 
-class Event {
-  var date: String?
-  var place: String?
-  var status: String?
-  var description: String?
+final class Event{
+  var date = ""
+  var place = ""
+  var status = ""
+  var description = ""
+}
+
+extension Event: ResponseRepresentable {
+
+  func makeResponse() throws -> Response {
+    let json = try JSON(node:
+      [
+        "date": date,
+        "place": place,
+        "status": status,
+        "description": description
+      ]
+    )
+    return try json.makeResponse()
+  }
+
+  func toDict() -> [String: Any] {
+    return [
+      "date": date,
+      "place": place,
+      "status": status,
+      "description": description
+    ]
+  }
 }
 
 func isDate(_ value: String) -> Bool {
@@ -25,15 +51,15 @@ enum InfoType: Int {
   case description = 3
 }
 
-func getInfo(nodes: [JiNode], index: Int, infoType: InfoType) -> String? {
-  if nodes.count > index + 1 {
+func getInfo(nodes: [JiNode], index: Int, infoType: InfoType) -> String {
+  if nodes.count > (index + infoType.rawValue) {
     let value = nodes[index + infoType.rawValue].content!
     if !isDate(value) {
       return value
     }
   }
 
-  return nil
+  return ""
 }
 
 let correiosUrl = "http://websro.correios.com.br/sro_bin/txect01%24.QueryList?P_LINGUA=001&P_TIPO=001&P_COD_UNI="
@@ -71,16 +97,28 @@ drop.get("search", ":code") { request in
 
       event.place = getInfo(nodes: tdNodes, index: index, infoType: InfoType.place)
       event.status = getInfo(nodes: tdNodes, index: index, infoType: InfoType.status)
+      event.description = getInfo(nodes: tdNodes, index: index, infoType: InfoType.description)
 
       events.append(event)
     }
   }
 
   let dateValues = events.map { event in
-    return event.status!
+    return event.description
   }.debugDescription
 
-  return trackValues + "\n\n\n" + dateValues
+  //return trackValues + "\n\n\n" + dateValues
+
+  let root = [
+    "events": events
+  ]
+
+  print(events)
+  let mapEvents = events.map { e in
+    return e.toDict()
+  }
+  print(mapEvents)
+  return mapEvents.array
 }
 
 
