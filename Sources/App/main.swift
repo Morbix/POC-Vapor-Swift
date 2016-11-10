@@ -25,7 +25,7 @@ extension Event: ResponseRepresentable {
     return try json.makeResponse()
   }
 
-  func toDict() -> [String: Any] {
+  func toDict() -> [String: String] {
     return [
       "date": date,
       "place": place,
@@ -46,9 +46,9 @@ func isDate(_ value: String) -> Bool {
 }
 
 enum InfoType: Int {
-  case place = 1
-  case status = 2
-  case description = 3
+case place = 1
+case status = 2
+case description = 3
 }
 
 func getInfo(nodes: [JiNode], index: Int, infoType: InfoType) -> String {
@@ -107,26 +107,19 @@ drop.get("search", ":code") { request in
     return event.description
   }.debugDescription
 
-  //return trackValues + "\n\n\n" + dateValues
-
-  let root = [
-    "events": events
-  ]
-
-  print(events)
-  let mapEvents = events.map { e in
-    return e.toDict()
+  let nodes = events.map {
+    try! Node(node: $0.toDict())
   }
-  print(mapEvents)
-  return mapEvents.array
+
+  return try! JSON(node: nodes)
 }
 
 
 
 drop.get { req in
-    return try drop.view.make("welcome", [
-    	"message": drop.localization[req.lang, "welcome", "title"]
-    ])
+  return try drop.view.make("welcome", [
+    "message": drop.localization[req.lang, "welcome", "title"]
+  ])
 }
 
 drop.resource("posts", PostController())
